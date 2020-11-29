@@ -3,13 +3,13 @@
 # @Author  : dashenN72
 
 from xmindparser import xmind_to_dict
-from xmind2excel.tools import xmind
-from xmind2excel.tools import excel
-from xmind2excel import config
+from tools import xmind
+from tools import excel
+import config
 
 FileName = '.\\input\\app测试用例.xmind'
 XmindContent = xmind_to_dict(FileName)[0]['topic']   # xmind内容
-print("原始心得内容：\n" + str(XmindContent))
+print("原始内容：\n" + str(XmindContent))
 
 list_xmind_content = xmind.XmindCase().xmind_case(XmindContent['topics'])
 print("case数：%d \n"

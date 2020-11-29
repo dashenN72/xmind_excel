@@ -10,7 +10,7 @@ import string
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.styles import Alignment
-from xmind2excel import config
+import config
 
 
 class ExcelWriter(object):
