@@ -6,17 +6,46 @@
 2.每一条链路（场景）都应该有优先级，否则默认使用上一级的优先级；
 """
 from copy import deepcopy
+from itertools import product
+import config
 
 
-class XmindCase(object):
+class MindCase(object):
     def __init__(self):
         self.result_xmind_case = []
         self.sub_xmind_case = ['']
         self.level = 0
+        self.result_params_test = []  # 参数校验构造的所有请求数据
+        self.result_logic_test = []  # 逻辑校验构造的所有请求数据
+        self.id_case_param_test = 0  # 参数校验case起始编号
+        self.id_case_logic_test = 0  # 逻辑校验case起始编号
 
-    def xmind_case(self, value_xmind):
+    def have_next_sub_topic(self, param):
         """
-        递归处理xmind解析后的数据生成以一条数据为一个case的列表
+        判断当前主体是否有子主题
+        :param param: 主体json格式数据
+        :return: 有 返回子主题，无，返回空
+        """
+        if 'topics' in param:  # 存在子主题
+            return param['topics']
+        else:
+            return []
+
+    def generate_case_free_combine(self, params):
+        """
+        通过给定的参数及其值的情况下，自动组合成请求参数
+        :param params: 请求参数为字典，key是参数名，value是参数名对应值的可能情况组成的列表
+        :return: 包含多个字典型请求参数组成的列表 [{'a': 1, 'b': 2},{'a': 'test', 'b': ''}]
+        """
+        params_request = params[0]  # 获取请求参数名组成的list
+        temp_values_request = params[1]  # 获取请求参数值组成的list
+        values_request = [list(value) for value in product(*temp_values_request)]  # 值的自由组合
+        param_value_request = [dict(zip(params_request, value_request)) for value_request in values_request]
+        return param_value_request
+
+    def mind_case_logic(self, value_xmind):
+        """
+        递归处理xmind解析后的数据生成以一条数据为一个case的列表,适用于接口测试中的逻辑校验
         :param value_xmind: xmind解析后的数据
         :return: list形式的数据
         """
@@ -39,19 +68,87 @@ class XmindCase(object):
                 # 增加层级键值对
                 [param.setdefault('level', value_xmind.get('level', '')+1) for param in value_xmind['topics']]
                 for param in value_xmind['topics']:
-                    self.xmind_case(param)
+                    self.mind_case_logic(param)
             else:
                 temp = deepcopy(self.sub_xmind_case)
                 self.result_xmind_case.append(temp)
         elif isinstance(value_xmind, list):  # 入参是列表
             [param.setdefault('level', param.get('level', 0)+1) for param in value_xmind]  # 增加层级键值对
             for param in value_xmind:
-                self.xmind_case(param)
+                self.mind_case_logic(param)
         return self.result_xmind_case
+
+    def mind_case(self, value_xmind):
+        """
+        解析指定格式的xmind，得到参数校验和逻辑校验数据(包含预期结果)
+        :param value_xmind: xmind解析后的数据
+        :return: list形式的数据
+        """
+
+        title = value_xmind['title']  # xmind标题
+        topics = value_xmind['topics']  # 接口所有参数组成的list
+        data_param_verify = {'name': title, 'data': []}
+        for topic in topics:
+            params_value = {}
+            name = topic['title']  # 接口名称
+            url = topic['topics'][0]['title']  # 接口请求地址
+            method = topic['topics'][1]['title']  # 接口请求方法
+            type_verify = topic['topics'][2]['title']  # 接口校验方法
+            if type_verify == '参数校验':
+                for value_topic in topic['topics'][2]['topics']:
+                    name_param = value_topic['title']  # 接口参数名
+                    value_param = [[value['title'], [value['title'] for value in value.get('topics', [{'title': []}])]] for value in value_topic['topics']]  # 参数组合
+                    params_value[name_param] = value_param
+                sub_data_param_verify = {'name': name, 'url': url, 'method': method, 'status': 1, 'params_value': params_value}
+                data_param_verify['data'].append(sub_data_param_verify)
+            elif type_verify == '逻辑校验':
+                pass
+        return data_param_verify
+
+    def mind_case_param(self, value_xmind):
+        """
+        将title与topics组成参数及其值的组合形式
+        :return:
+        """
+        title = value_xmind['title']  # xmind标题
+        topics = value_xmind['topics']  # 接口所有参数组成的list
+        # 参数校验中参数名及其值的组合，序列0中存储的是参数名，序列1中存储的是参数名的值组成的list在组成的list
+        for topic in topics:
+            data_param_verify = [[], []]
+            name = topic['title']  # 接口名称
+            url = topic['topics'][0]['title']  # 接口请求地址
+            method = topic['topics'][1]['title']  # 接口请求方法
+            for type_params in topic['topics'][2:]:
+                type_verify = type_params['title']  # 接口校验方法
+                if type_verify == '参数校验':
+                    for value_topic in type_params['topics']:
+                        name_param = value_topic['title']  # 接口参数名
+                        value_param = [topic['title'] for topic in value_topic['topics']]  # 参数可能值组成的list
+                        data_param_verify[0].append(name_param)
+                        data_param_verify[1].append(value_param)
+                    result_param_combine = self.generate_case_free_combine((data_param_verify[0], data_param_verify[1]))
+                    result_param_combine.pop(0)  # 将第一个全部正确的入参输入，此校验在逻辑校验中
+                    for param in result_param_combine:
+                        self.id_case_param_test += 1
+                        self.result_params_test.append([self.id_case_param_test, name, method, config.host_interface+url, param])
+                elif type_verify == '逻辑校验':
+                    for value_topic in type_params['topics']:
+                        desc_logic = value_topic['title']  # 逻辑场景描述
+                        priority = value_topic['makers'][0].split('-')[1] if 'makers' in value_topic else 5  # 场景优先级
+                        pre_condition = value_topic['note'] if 'note' in value_topic else ''  # 场景前置条件
+                        checklist_logic = [topic['title'] for topic in value_topic['topics']]  # 逻辑校验检查点
+                        for check_point in checklist_logic:
+                            self.id_case_logic_test += 1
+                            self.result_logic_test.append([self.id_case_logic_test, priority, name, desc_logic,
+                                                           pre_condition, method, config.host_interface+url, '',
+                                                           check_point])
+                else:
+                    print('[ERROR]校验类型不在"参数校验和逻辑校验之间"')
+        return self.result_params_test, self.result_logic_test
 
 
 if __name__ == "__main__":
-    xc = XmindCase()
+    xc = MindCase()
     value = {'topics': [{'topics': [{'topics': [{'makers': ['priority-1', 'task-start', 'smiley-smile'], 'topics': [{'title': '注册成功'}, {'title': '提示语友好'}], 'title': '合规的用户名+密码'}, {'makers': ['priority-2'], 'topics': [{'note': '这是一个备注', 'title': '注册失败'}], 'title': '已存在的用户名'}, {'makers': ['priority-3'], 'topics': [{'title': '注册失败'}], 'title': '不合法的用户名'}, {'makers': ['priority-4'], 'topics': [{'title': '注册失败'}, {'title': '密码错误'}], 'title': '不合法的密码'}], 'title': '功能测试'}, {'topics': [{'makers': ['priority-1'], 'title': '界面满足要求'}], 'title': 'UI测试'}, {'topics': [{'topics': [{'makers': ['priority-1'], 'title': 'cpu'}, {'makers': ['priority-1'], 'title': 'mem'}], 'title': 'pftest'}], 'title': '性能测试'}], 'title': '注册'}, {'topics': [{'makers': ['priority-3'], 'topics': [{'title': '符合设计'}], 'title': '界面测试'}, {'makers': ['priority-1'], 'title': '响应时间'}], 'title': '登录'}, {'topics': [{'makers': ['priority-1'], 'topics': [{'title': '提示正常'}], 'title': '有效期内验证码'}, {'makers': ['priority-2'], 'topics': [{'title': '提示错误'}], 'title': '过期验证码'}], 'title': '验证码'}], 'title': 'app测试用例'}
     print(xc.xmind_case(value['topics']))
 

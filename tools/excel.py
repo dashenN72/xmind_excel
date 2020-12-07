@@ -14,11 +14,12 @@ import config
 
 
 class ExcelWriter(object):
-    def __init__(self, excel_name, sheet_name="测试用例"):
+    def __init__(self, excel_name, module_excel):
         self.wb = openpyxl.Workbook()
         self.sheet = self.wb.active
-        self.sheet.title = sheet_name
+        self.sheet.title = module_excel[0][0]
         self.excel_name = excel_name
+        self.sheets = module_excel[1:]
 
     def __enter__(self):
         return self
@@ -58,7 +59,7 @@ class ExcelWriter(object):
         自动设置单元格宽度
         :return: None
         """
-        cols_list = [param[0] for param in config.module_excel[1:]]  # 获取列名
+        cols_list = [param[0] for param in self.sheets]  # 获取列名
         for i in range(0, len(cols_list)):
             letter = chr(i + 65)  # 由ASCII值获得对应的列字母
             max_len = self.__get_maxlength(letter)
@@ -76,7 +77,7 @@ class ExcelWriter(object):
         初始化excel中sheet的标题
         :return:
         """
-        sheets = config.module_excel[1:]  # 获取sheet数据
+        sheets = self.sheets  # 获取sheet数据
         names_cols = [param + '1' for param in list(string.ascii_uppercase)[:len(sheets)]]  # 生成excel表列编号
         for name in names_cols:
             self.sheet[name] = sheets[names_cols.index(name)][0]
@@ -91,11 +92,17 @@ class ExcelWriter(object):
         :param sheet_data: list形式的数据
         :return:
         """
+        num_had_write = 0
         for row in range(1, len(sheet_data)+1):
             for col in range(1, len(sheet_data[row-1])+1):
-                self.sheet.cell(row=row+1, column=col).value = sheet_data[row-1][col-1]
+                self.sheet.cell(row=row+1, column=col).value = str(sheet_data[row-1][col-1])
+                num_had_write += 1
                 # self.sheet.cell(row=row, column=8).font = Font(color=RED)
         self.__auto_width()  # 自动设置单元格宽度
+        if num_had_write == len(sheet_data):  # 所有数据写入excel成功
+            return True
+        else:
+            return False
 
 
 if __name__ == "__main__":
