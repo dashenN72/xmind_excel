@@ -19,7 +19,7 @@ print("【参数校验case数】：%d\n 【mind内容转换成list】：%s\n 【
 # 写参数校验数据
 with excel.ExcelWriter(XmindContent['title'] + '_参数校验.xlsx', config.module_excel_sheet1) as ew1:
     ew1.init_title()  # 创建excel表格sheet标题，从配置文件
-    if ew1.write_rows(content_params_test):  # 将mind内容写入excel
+    if ew1.write_rows(content_params_test, type_write=1):  # 将mind内容写入excel
         print("[INFO]测试用例写入Excel成功！")
     else:
         print("[INFO]测试用例写入Excel失败！")

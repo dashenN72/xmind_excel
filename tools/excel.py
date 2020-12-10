@@ -86,17 +86,26 @@ class ExcelWriter(object):
             self.sheet.cell(row=1, column=col).font = Font(bold=True)  # 文字加粗
             self.sheet.cell(row=1, column=col).alignment = Alignment(horizontal='center', vertical='center')  # 居中
 
-    def write_rows(self, sheet_data):
+    def write_rows(self, sheet_data, type_write=None):
         """
         写数据到excel
         :param sheet_data: list形式的数据
+        :param type_write: 写入数据类型，参数校验和逻辑校验
         :return:
         """
         num_had_write = 0
         for row in range(1, len(sheet_data)+1):
             for col in range(1, len(sheet_data[row-1])+1):
-                self.sheet.cell(row=row+1, column=col).value = str(sheet_data[row-1][col-1])
-                num_had_write += 1
+                if not type_write and row > 1:  # 写入类型
+                    value_last = str(sheet_data[row-2][col-1])  # 获取上一行同一列的值
+                    value_current = str(sheet_data[row-1][col-1])  # 获取当前行同一列的值
+                    if value_current == value_last:  # 相同则不写
+                        continue
+                    else:
+                        self.sheet.cell(row=row+1, column=col).value = str(sheet_data[row-1][col-1])
+                else:  # 第一行数据直接写入
+                    self.sheet.cell(row=row + 1, column=col).value = str(sheet_data[row - 1][col - 1])
+            num_had_write += 1
                 # self.sheet.cell(row=row, column=8).font = Font(color=RED)
         self.__auto_width()  # 自动设置单元格宽度
         if num_had_write == len(sheet_data):  # 所有数据写入excel成功

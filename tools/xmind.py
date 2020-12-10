@@ -122,10 +122,11 @@ class MindCase(object):
                 type_verify = type_params['title']  # 接口校验方法
                 if type_verify == '参数校验':
                     for value_topic in type_params['topics']:
-                        name_param = value_topic['title']  # 接口参数名
-                        value_param = [topic['title'] for topic in value_topic['topics']]  # 参数可能值组成的list
-                        data_param_verify[0].append(name_param)
-                        data_param_verify[1].append(value_param)
+                        for value_case in value_topic['topics']:
+                            name_param = value_case['title']  # 接口参数名
+                            value_param = [topic['title'] for topic in value_case['topics']]  # 参数可能值组成的list
+                            data_param_verify[0].append(name_param)
+                            data_param_verify[1].append(value_param)
                     result_param_combine = self.generate_case_free_combine((data_param_verify[0], data_param_verify[1]))
                     result_param_combine.pop(0)  # 将第一个全部正确的入参输入，此校验在逻辑校验中
                     for param in result_param_combine:
@@ -133,15 +134,16 @@ class MindCase(object):
                         self.result_params_test.append([self.id_case_param_test, name, method, config.host_interface+url, param])
                 elif type_verify == '逻辑校验':
                     for value_topic in type_params['topics']:
-                        desc_logic = value_topic['title']  # 逻辑场景描述
-                        priority = value_topic['makers'][0].split('-')[1] if 'makers' in value_topic else 5  # 场景优先级
-                        pre_condition = value_topic['note'] if 'note' in value_topic else ''  # 场景前置条件
-                        checklist_logic = [topic['title'] for topic in value_topic['topics']]  # 逻辑校验检查点
-                        for check_point in checklist_logic:
-                            self.id_case_logic_test += 1
-                            self.result_logic_test.append([self.id_case_logic_test, priority, name, desc_logic,
-                                                           pre_condition, method, config.host_interface+url, '',
-                                                           check_point])
+                        for value_case in value_topic['topics']:
+                            desc_logic = value_case['title']  # 逻辑场景描述
+                            priority = value_case['makers'][0].split('-')[1] if 'makers' in value_case else 5  # 场景优先级
+                            pre_condition = value_case['note'] if 'note' in value_case else ''  # 场景前置条件
+                            checklist_logic = [topic['title'] for topic in value_case['topics']]  # 逻辑校验检查点
+                            for check_point in checklist_logic:
+                                self.id_case_logic_test += 1
+                                self.result_logic_test.append([self.id_case_logic_test, priority, name, desc_logic,
+                                                               pre_condition, method, config.host_interface+url, '',
+                                                               check_point])
                 else:
                     print('[ERROR]校验类型不在"参数校验和逻辑校验之间"')
         return self.result_params_test, self.result_logic_test
