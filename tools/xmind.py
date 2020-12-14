@@ -8,6 +8,7 @@
 from copy import deepcopy
 from itertools import product
 import config
+from copy import deepcopy
 
 
 class MindCase(object):
@@ -42,6 +43,29 @@ class MindCase(object):
         values_request = [list(value) for value in product(*temp_values_request)]  # 值的自由组合
         param_value_request = [dict(zip(params_request, value_request)) for value_request in values_request]
         return param_value_request
+
+    def generate_case_one_change(self, params):
+        """
+        通过给定的参数及其值的情况下,只有一个参数值变化，其他参数值正确，组合成请求参数
+        :param params:
+        :return:
+        """
+        param_value_request_full = []
+        copy_temp_values_request = deepcopy(params[1])  # 深度复制
+        for i in range(len(copy_temp_values_request)):
+            params_request = deepcopy(params[0])  # 获取请求参数名组成的list
+            temp_values_request = deepcopy(params[1])  # 获取请求参数值组成的list
+            value_change_list = temp_values_request[i][1:]  # 变化参数值组成的列表
+            temp_values_request.remove(temp_values_request[i])  # 剩下的值组成的列表
+            value_right_list = [[value_right[0]] for value_right in temp_values_request]  # 正确的参数值组成的列表
+            value_right_list.append(value_change_list)
+            values_request = [list(value) for value in product(*value_right_list)]  # 值的组合
+            param = params_request[i]
+            params_request.remove(param)
+            params_request.append(param)
+            param_value_request = [dict(zip(params_request, value_request)) for value_request in values_request]  # 参数和值组合
+            param_value_request_full.extend(param_value_request)
+        return param_value_request_full
 
     def mind_case_logic(self, value_xmind):
         """
@@ -127,7 +151,7 @@ class MindCase(object):
                             value_param = [topic['title'] for topic in value_case['topics']]  # 参数可能值组成的list
                             data_param_verify[0].append(name_param)
                             data_param_verify[1].append(value_param)
-                    result_param_combine = self.generate_case_free_combine((data_param_verify[0], data_param_verify[1]))
+                    result_param_combine = self.generate_case_one_change((data_param_verify[0], data_param_verify[1]))
                     result_param_combine.pop(0)  # 将第一个全部正确的入参输入，此校验在逻辑校验中
                     for param in result_param_combine:
                         self.id_case_param_test += 1
@@ -151,7 +175,7 @@ class MindCase(object):
 
 if __name__ == "__main__":
     xc = MindCase()
-    value = {'topics': [{'topics': [{'topics': [{'makers': ['priority-1', 'task-start', 'smiley-smile'], 'topics': [{'title': '注册成功'}, {'title': '提示语友好'}], 'title': '合规的用户名+密码'}, {'makers': ['priority-2'], 'topics': [{'note': '这是一个备注', 'title': '注册失败'}], 'title': '已存在的用户名'}, {'makers': ['priority-3'], 'topics': [{'title': '注册失败'}], 'title': '不合法的用户名'}, {'makers': ['priority-4'], 'topics': [{'title': '注册失败'}, {'title': '密码错误'}], 'title': '不合法的密码'}], 'title': '功能测试'}, {'topics': [{'makers': ['priority-1'], 'title': '界面满足要求'}], 'title': 'UI测试'}, {'topics': [{'topics': [{'makers': ['priority-1'], 'title': 'cpu'}, {'makers': ['priority-1'], 'title': 'mem'}], 'title': 'pftest'}], 'title': '性能测试'}], 'title': '注册'}, {'topics': [{'makers': ['priority-3'], 'topics': [{'title': '符合设计'}], 'title': '界面测试'}, {'makers': ['priority-1'], 'title': '响应时间'}], 'title': '登录'}, {'topics': [{'makers': ['priority-1'], 'topics': [{'title': '提示正常'}], 'title': '有效期内验证码'}, {'makers': ['priority-2'], 'topics': [{'title': '提示错误'}], 'title': '过期验证码'}], 'title': '验证码'}], 'title': 'app测试用例'}
-    print(xc.xmind_case(value['topics']))
+    value = [['name', 'type', 'status'], [['正确name', '123', '"test"', 'NULL'], ['正确type', '1'], ['正确status', '1', '0']]]
+    print(xc.generate_case_one_change(value))
 
 
