@@ -11,6 +11,7 @@ import openpyxl
 from openpyxl.styles import Font
 from openpyxl.styles import Alignment
 import config
+import json
 
 
 class ExcelWriter(object):
@@ -109,6 +110,26 @@ class ExcelWriter(object):
                 # self.sheet.cell(row=row, column=8).font = Font(color=RED)
         self.__auto_width()  # 自动设置单元格宽度
         if num_had_write == len(sheet_data):  # 所有数据写入excel成功
+            return True
+        else:
+            return False
+
+    def write_rows_from_txt(self, file_txt, type_write=None):
+        """
+        从txt中逐行读取数据写到excel中
+        :param file_txt:
+        :param type_write:
+        :return:
+        """
+        row = 0
+        with open(file_txt, 'a', encoding='utf-8') as f:
+            data_row = json.loads(f.readline())
+            row += 1
+            for col in range(1, len(data_row) + 1):
+                self.sheet.cell(row=row + 1, column=col).value = str(data_row[row - 1][col - 1])
+            row -= 1
+        self.__auto_width()  # 自动设置单元格宽度
+        if not row:  # 所有数据写入excel成功
             return True
         else:
             return False

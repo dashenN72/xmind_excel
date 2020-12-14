@@ -8,6 +8,7 @@
 from copy import deepcopy
 from itertools import product
 import config
+import json
 
 
 class MindCase(object):
@@ -121,17 +122,20 @@ class MindCase(object):
             for type_params in topic['topics'][2:]:
                 type_verify = type_params['title']  # 接口校验方法
                 if type_verify == '参数校验':
-                    for value_topic in type_params['topics']:
-                        for value_case in value_topic['topics']:
-                            name_param = value_case['title']  # 接口参数名
-                            value_param = [topic['title'] for topic in value_case['topics']]  # 参数可能值组成的list
-                            data_param_verify[0].append(name_param)
-                            data_param_verify[1].append(value_param)
-                    result_param_combine = self.generate_case_free_combine((data_param_verify[0], data_param_verify[1]))
-                    result_param_combine.pop(0)  # 将第一个全部正确的入参输入，此校验在逻辑校验中
-                    for param in result_param_combine:
-                        self.id_case_param_test += 1
-                        self.result_params_test.append([self.id_case_param_test, name, method, config.host_interface+url, param])
+                    pass
+                    # for value_topic in type_params['topics']:
+                    #     for value_case in value_topic['topics']:
+                    #         name_param = value_case['title']  # 接口参数名
+                    #         value_param = [topic['title'] for topic in value_case['topics']]  # 参数可能值组成的list
+                    #         data_param_verify[0].append(name_param)
+                    #         data_param_verify[1].append(value_param)
+                    # result_param_combine = self.generate_case_free_combine((data_param_verify[0], data_param_verify[1]))
+                    # result_param_combine.pop(0)  # 将第一个全部正确的入参输入，此校验在逻辑校验中
+                    # with open(config.file1, 'a', encoding='utf-8') as f:
+                    #     for param in result_param_combine:
+                    #         self.id_case_param_test += 1
+                    #         f.write(json.dumps([self.id_case_param_test, name, method, config.host_interface+url, param], ensure_ascii=False) + '\n')
+                        # self.result_params_test.append([self.id_case_param_test, name, method, config.host_interface+url, param])
                 elif type_verify == '逻辑校验':
                     for value_topic in type_params['topics']:
                         for value_case in value_topic['topics']:
@@ -139,19 +143,20 @@ class MindCase(object):
                             priority = value_case['makers'][0].split('-')[1] if 'makers' in value_case else 5  # 场景优先级
                             pre_condition = value_case['note'] if 'note' in value_case else ''  # 场景前置条件
                             checklist_logic = [topic['title'] for topic in value_case['topics']]  # 逻辑校验检查点
-                            for check_point in checklist_logic:
-                                self.id_case_logic_test += 1
-                                self.result_logic_test.append([self.id_case_logic_test, priority, name, desc_logic,
-                                                               pre_condition, method, config.host_interface+url, '',
-                                                               check_point])
+                            with open(config.file2, 'a', encoding='utf-8') as f:
+                                for check_point in checklist_logic:
+                                    self.id_case_logic_test += 1
+                                    f.write(json.dumps([self.id_case_logic_test, priority, name, desc_logic, pre_condition, method, config.host_interface+url, '', check_point], ensure_ascii=False) + '\n')
+                                # self.result_logic_test.append([self.id_case_logic_test, priority, name, desc_logic,
+                                #                                pre_condition, method, config.host_interface+url, '',
+                                #                                check_point])
                 else:
-                    print('[ERROR]校验类型不在"参数校验和逻辑校验之间"')
-        return self.result_params_test, self.result_logic_test
+                    print('[ERROR]校验类型[%s]不在"参数校验和逻辑校验之间"' % type_verify)
+        # return self.result_params_test, self.result_logic_test
+        return True
 
 
 if __name__ == "__main__":
     xc = MindCase()
     value = {'topics': [{'topics': [{'topics': [{'makers': ['priority-1', 'task-start', 'smiley-smile'], 'topics': [{'title': '注册成功'}, {'title': '提示语友好'}], 'title': '合规的用户名+密码'}, {'makers': ['priority-2'], 'topics': [{'note': '这是一个备注', 'title': '注册失败'}], 'title': '已存在的用户名'}, {'makers': ['priority-3'], 'topics': [{'title': '注册失败'}], 'title': '不合法的用户名'}, {'makers': ['priority-4'], 'topics': [{'title': '注册失败'}, {'title': '密码错误'}], 'title': '不合法的密码'}], 'title': '功能测试'}, {'topics': [{'makers': ['priority-1'], 'title': '界面满足要求'}], 'title': 'UI测试'}, {'topics': [{'topics': [{'makers': ['priority-1'], 'title': 'cpu'}, {'makers': ['priority-1'], 'title': 'mem'}], 'title': 'pftest'}], 'title': '性能测试'}], 'title': '注册'}, {'topics': [{'makers': ['priority-3'], 'topics': [{'title': '符合设计'}], 'title': '界面测试'}, {'makers': ['priority-1'], 'title': '响应时间'}], 'title': '登录'}, {'topics': [{'makers': ['priority-1'], 'topics': [{'title': '提示正常'}], 'title': '有效期内验证码'}, {'makers': ['priority-2'], 'topics': [{'title': '提示错误'}], 'title': '过期验证码'}], 'title': '验证码'}], 'title': 'app测试用例'}
     print(xc.xmind_case(value['topics']))
-
-
